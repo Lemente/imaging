@@ -433,7 +433,7 @@ imaging.generate = function(_, state)
 end
 
 imaging.fillGrid = function(playername, palette, grid, replacement, bumpvalue)
-	
+for i = 0,bumpvalue do	
 	local node = clicked_node[playername]
 	if not node or node.name ~= "imaging:canvas" then
 		notify.err(playername, "How did you end up here?")
@@ -444,35 +444,41 @@ imaging.fillGrid = function(playername, palette, grid, replacement, bumpvalue)
 	local transform = get_facedir_transform(facedir)
 	
 	local multi = bumpvalue / 255
-	
 	function placeNode(x, y, paletteIndex)
-		local pos = {
-			x = math.floor(-grid.width / 2 + x + 0.5),
-			y = grid.height - y,
-			z = math.floor(-multi * paletteIndex + 0.5),
-		}
-		local newpos = vector.add(node.pos, apply_transform(pos, transform))
-		local newnode
+--		local i=bumpvalue
 
-		if replacement then
-			newnode = { name = replacement }
-		else		
-			newnode = {
-				name = "imaging:palette_" .. palette,
-				param2 = paletteIndex,
+--		
+			local pos = {
+				x = math.floor(-grid.width / 2 + x + 0.5),
+				y = grid.height - y,
+				z = math.floor(-multi * paletteIndex + 0.5 + i ),
 			}
-		end
-		minetest.swap_node(newpos, newnode)
-	end
-	
-	for y = 0, grid.height - 1 do
-		for x = 0, grid.width - 1 do
-			local paletteIndex = grid.rows[y][x]
-			if paletteIndex ~= false then
-				placeNode(x, y, paletteIndex)
+			local newpos = vector.add(node.pos, apply_transform(pos, transform))
+			local newnode
+
+			if replacement then
+				newnode = { name = replacement }
+			else		
+				newnode = {
+					name = "imaging:palette_" .. palette,
+					param2 = paletteIndex,
+				}
 			end
+			minetest.swap_node(newpos, newnode)
 		end
-	end
+		
+		for y = 0, grid.height - 1 do
+			for x = 0, grid.width - 1 do
+				local paletteIndex = grid.rows[y][x]
+				if paletteIndex ~= false then
+					placeNode(x, y, paletteIndex)
+				end
+			end
+		--i = i-1
+		minetest.chat_send_all("image printed layer " .. bumpvalue .. " of " .. bumpvalue)
+		end
+		minetest.chat_send_all("bumpvalue = " .. bumpvalue .. "; i = " .. i)
+end
 end
 
 imaging.init()
@@ -511,4 +517,5 @@ imaging.forms.main = smartfs.create("imaging.forms.main", function(state)
 	local close_button = state:button(5.2, 7, 2, 1, "close", "Close")
 	close_button:setClose(true)
 end)
+
 
