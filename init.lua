@@ -192,14 +192,14 @@ end
 
 local function copy_file(source, dest)
 	local src_file = io.open(source, "rb")
-	if not src_file then 
+	if not src_file then
 		return false, "copy_file() unable to open source for reading"
 	end
 	local src_data = src_file:read("*all")
 	src_file:close()
 
 	local dest_file = io.open(dest, "wb")
-	if not dest_file then 
+	if not dest_file then
 		return false, "copy_file() unable to open dest for writing"
 	end
 	dest_file:write(src_data)
@@ -211,9 +211,9 @@ local function custom_or_default(modname, path, filename)
 	local default_filename = "default/" .. filename
 	local full_filename = path .. "/custom." .. filename
 	local full_default_filename = path .. "/" .. default_filename
-	
+
 	os.rename(path .. "/" .. filename, full_filename)
-	
+
 	local file = io.open(full_filename, "rb")
 	if not file then
 		minetest.debug("[" .. modname .. "] Copying " .. default_filename .. " to " .. filename .. " (path: " .. path .. ")")
@@ -265,7 +265,7 @@ local function textToGrid(text)
 		x = x + 1
 		return true
 	end
-	
+
 	local function processCell(cell)
 		local includeEmpty = true
 		local parts = cell:split(":", includeEmpty)
@@ -288,16 +288,16 @@ local function textToGrid(text)
 		end
 		return true
 	end
-	
+
 	for index, cell in ipairs(parts) do
 		if index > 2 then
 			local success, err = processCell(cell)
 			if not success then
 				return false, err
 			end
-		end	
+		end
 	end
-	
+
 	return {
 		width = width,
 		height = height,
@@ -326,19 +326,19 @@ imaging.init = function()
 			paramtype2 = "color",
 			tiles = { "white.png" },
 			palette = palette,
-			groups = {cracky = 3, not_in_creative_inventory = 1},
+			groups = {cracky = 3, falling_node = 1, not_in_creative_inventory = 1},
 		}
-		minetest.register_node("imaging:palette_" .. name, def)
+		minetest.register_node("imaging_falling_nodes:palette_" .. name, def)
 	end
-	
+
 	local node_box = {
 		type = "fixed",
 		fixed = {
 			{-0.5, -0.5, -0.15, 0.5, 0.5, 0.15},
 		},
 	}
-	
-	minetest.register_node("imaging:canvas", {
+
+	minetest.register_node("imaging_falling_nodes:canvas", {
 		drawtype = "nodebox",
 		description = "Imaging Canvas",
 		tiles = {
@@ -355,15 +355,15 @@ imaging.init = function()
 		groups = {cracky = 3 },
 		on_rightclick = imaging.on_rightclick,
 	})
-	
+
 	local full_recipes_filename = custom_or_default("imaging", mod_path, "recipes.lua")
 	if not full_recipes_filename then return end
 	local recipes = dofile(full_recipes_filename);
-	
-	if recipes["imaging:canvas"] then
+
+	if recipes["imaging_falling_nodes:canvas"] then
 		minetest.register_craft({
-			output = "imaging:canvas",
-			recipe = recipes["imaging:canvas"]
+			output = "imaging_falling_nodes:canvas",
+			recipe = recipes["imaging_falling_nodes:canvas"]
 		})
 	end
 end
@@ -376,17 +376,17 @@ imaging.on_rightclick = function(clicked_pos, node, clicker)
 	node.pos = clicked_pos
 	clicked_node[playername] = node
 	local state = imaging.forms.main:show(playername)
-	
+
 	local memory = main_memory[playername]
-	
+
 	if not memory then return end
-	
+
 	if memory.text then state:get("paste"):setText(memory.text) end
 	if memory.palette then state:get("palettes"):setSelectedItem(memory.palette) end
 	state:get("replacer"):setValue(memory.replacer)
 	if memory.replacement then state:get("replacement"):setText(memory.replacement) end
 	if memory.bumpvalue then state:get("bumpvalue"):setText(memory.bumpvalue) end
-	
+
 end
 
 imaging.generate = function(_, state)
@@ -395,7 +395,7 @@ imaging.generate = function(_, state)
 	local replacer = state:get("replacer"):getValue()
 	local replacement = state:get("replacement"):getText()
 	local bumpvalue = tonumber(state:get("bumpvalue"):getText())
-		
+
 	if replacer then
 		local def = minetest.registered_nodes[replacement]
 		if not def then
@@ -405,22 +405,22 @@ imaging.generate = function(_, state)
 	else
 		replacement = false
 	end
-	
+
 	if type(bumpvalue) ~= "number" or bumpvalue < 0 then
 		bumpvalue = 0
 	end
-	
+
 	if not imaging.palettes[palette] then
 		notify.err(state.player, "Invalid palette name " .. palette)
 		return
 	end
-	
+
 	local grid, err = textToGrid(text)
 	if not grid then
 		notify.err(state.player, err)
 		return
 	end
-	
+
 	main_memory[state.player] = {
 		palette = palette,
 		replacer = replacer,
@@ -428,26 +428,26 @@ imaging.generate = function(_, state)
 		bumpvalue = bumpvalue,
 		text = text,
 	}
-	
+
 	imaging.fillGrid(state.player, palette, grid, replacement, bumpvalue)
 end
 
 imaging.fillGrid = function(playername, palette, grid, replacement, bumpvalue)
-for i = 0,bumpvalue do	
+for i = 0,bumpvalue do
 	local node = clicked_node[playername]
-	if not node or node.name ~= "imaging:canvas" then
+	if not node or node.name ~= "imaging_falling_nodes:canvas" then
 		notify.err(playername, "How did you end up here?")
 		return
 	end
-	
+
 	local facedir = node.param2
 	local transform = get_facedir_transform(facedir)
-	
+
 	local multi = bumpvalue / 255
 	function placeNode(x, y, paletteIndex)
 --		local i=bumpvalue
 
---		
+--
 			local pos = {
 				x = math.floor(-grid.width / 2 + x + 0.5),
 				y = grid.height - y,
@@ -458,15 +458,15 @@ for i = 0,bumpvalue do
 
 			if replacement then
 				newnode = { name = replacement }
-			else		
+			else
 				newnode = {
-					name = "imaging:palette_" .. palette,
+					name = "imaging_falling_nodes:palette_" .. palette,
 					param2 = paletteIndex,
 				}
 			end
 			minetest.swap_node(newpos, newnode)
 		end
-		
+
 		for y = 0, grid.height - 1 do
 			for x = 0, grid.width - 1 do
 				local paletteIndex = grid.rows[y][x]
@@ -487,7 +487,7 @@ imaging.forms = {}
 
 imaging.forms.main = smartfs.create("imaging.forms.main", function(state)
 	state:size(7.5, 8)
-	
+
 	local paste_area = state:field(0.5, 0.5, 6.95, 3.5, "paste", "Paste Imaging data here")
 	paste_area:isMultiline(true)
 	paste_area:setCloseOnEnter(false)
@@ -495,25 +495,25 @@ imaging.forms.main = smartfs.create("imaging.forms.main", function(state)
 	local palettes = state:dropdown(0.2, 3.7, 5.2, 0, "palettes", {})
 	for name, palette in pairs(imaging.palettes) do
 		palettes:addItem(name)
-	end	
+	end
 	if imaging.palettes.vga then
 		palettes:setSelectedItem("vga")
 	else
 		palettes:setSelected(1)
 	end
-	
+
 	local generate_button = state:button(5.2, 3.6, 2, 1, "generate", "Build")
 	generate_button:onClick(imaging.generate)
 	generate_button:setClose(true)
-	
+
 	local replacer = state:checkbox(0.2, 4.5, "replacer", "Build as:")
 	local replacement = state:field(0.5, 4.6, 5, 4.5, "replacement", "'air' or 'modname:nodename'")
 	replacement:setText("air")
 	replacement:setCloseOnEnter(false)
-	
+
 	local bumpvalue = state:field(0.5, 5.8, 5, 4.5, "bumpvalue", "Bump value (zero or positive)")
 	bumpvalue:setText("0")
-	
+
 	local close_button = state:button(5.2, 7, 2, 1, "close", "Close")
 	close_button:setClose(true)
 end)
